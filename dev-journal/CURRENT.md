@@ -1,5 +1,5 @@
 # Active Story Handoff
-Last updated : 2026-03-22T00:00:00
+Last updated : 2026-03-22T23:00:00
 Story        : US-E0-004 — Solace local queue and subscription provisioning
 Status       : COMPLETE
 Sprint       : 1
@@ -51,12 +51,21 @@ None — infrastructure provisioning, automation, and documentation only.
 | verify.bat Low findings not fixed | temp file cleanup and variable init — Low severity, no functional impact | Declined 2026-03-22 |
 | setup.bat goto label finding not fixed | Low severity, works on Windows 10/11 in practice | Declined 2026-03-22 |
 
+## Local Stack Run Status (2026-03-22)
+Windows local stack run was attempted. Current status:
+- setup.bat fixed: goto-inside-parenthesised-block bug resolved (replaced with goto skip_bash_check at top level)
+- Prereq checks: Docker ✅, Compose ✅, AWS CLI ✅, bash ✅
+- .env created from .env.example ✅
+- Certificate generation: BLOCKED — bash on PATH is WSL relay, not Git Bash; WSL distro not configured
+
 ## Exact Next Step
-Begin US-E0-005: implement src/main/resources/application-local.yml — Spring Boot local profile pointing to Docker Compose services.
+1. Install Git for Windows on the user's machine: `winget install Git.Git`
+2. Open a new terminal after install (so Git Bash is on PATH)
+3. Run `local-dev\setup.bat` to complete: cert generation → docker compose up → health poll → verify
+4. Once local stack is confirmed healthy, begin US-E0-005: implement src/main/resources/application-local.yml
 
 ## Context to Load on Resume
 Read these files (in order) before resuming — do not read anything else until these are loaded:
 1. dev-journal/CURRENT.md (already reading this)
-2. backlog.md — US-E0-005 block only
-3. local-dev/docker-compose.yml (to confirm hostnames and ports for Solace, PostgreSQL, LocalStack)
-CLAUDE.md sections needed: Java/Spring Boot standards, Solace/JCSMP standards, Security standards
+2. local-dev/setup.bat — to understand current state of the script
+CLAUDE.md sections needed: Java/Spring Boot standards, Solace/JCSMP standards, Security standards (for US-E0-005)

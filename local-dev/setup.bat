@@ -79,21 +79,17 @@ if !errorlevel! neq 0 (
 )
 
 REM Check Git Bash is available (needed for generate-certs.sh)
-if !SKIP_CERTS! equ 0 (
-    where bash >nul 2>&1
-    if !errorlevel! neq 0 (
-        echo   [WARN] bash not found -- certificate generation will be skipped
-        echo          Install Git for Windows (includes Git Bash): https://git-scm.com/download/win
-        echo          Or run: winget install Git.Git
-        set SKIP_CERTS=1
-    ) else (
-        for /f "delims=" %%v in ('bash --version 2^>nul ^| findstr /C:"version"') do (
-            echo   [PASS] %%v
-            goto bash_found
-        )
-        :bash_found
-    )
+if !SKIP_CERTS! neq 0 goto skip_bash_check
+where bash >nul 2>&1
+if !errorlevel! neq 0 (
+    echo   [WARN] bash not found -- certificate generation will be skipped
+    echo          Install Git for Windows: https://git-scm.com/download/win
+    echo          Or run: winget install Git.Git
+    set SKIP_CERTS=1
+) else (
+    echo   [PASS] bash -- available
 )
+:skip_bash_check
 
 if !PREREQ_FAIL! equ 1 (
     echo.
