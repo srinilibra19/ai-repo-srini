@@ -1,0 +1,129 @@
+# Containers with Middleware — Local Development Stack
+#
+# Services: Solace PubSub+ Standard | PostgreSQL 15.17 | LocalStack 4.14 (community)
+#
+# Usage:
+#   docker compose up -d          # start all services
+#   docker compose ps             # check health status
+#   docker compose logs -f        # tail all logs
+#   docker compose down -v        # stop and remove containers + volumes
+#
+# ⚠ LocalStack auth notice:
+#   Community edition (no auth token) is used by default.
+#   LocalStack enforces auth for free tier from 2026-03-23.
+#   To enable auth: uncomment LOCALSTACK_AUTH_TOKEN in localstack.environment
+#   and set the value in local-dev/.env (see .env.example).
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Solace PubSub+ Standard
+  # Admin UI : http://localhost:8080  (admin / admin)
+  # SMF      : localhost:55555 (plaintext) | localhost:55443 (TLS)
+  # ---------------------------------------------------------------------------
+  solace:
+    image: solace/solace-pubsub-standard:latest
+    container_name: hermes-solace
+    hostname: solace
+    environment:
+      username_admin_globalaccesslevel: admin
+      username_admin_password: admin
+    ports:
+      - "55555:55555"   # SMF plaintext
+      - "55443:55443"   # SMF over TLS
+      - "8080:8080"     # SEMP v2 API / admin UI
+    volumes:
+      - solace-data:/var/lib/solace
+    shm_size: 256m
+    ulimits:
+      core: 0
+      nofile:
+        soft: 2448
+        hard: 38048
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -u admin:admin http://localhost:8080/SEMP/v2/config/about/api || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - hermes-local
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 15.17
+  # Connection : localhost:5432  db=hermes  user=hermes  password=hermes
+  # Override password via POSTGRES_PASSWORD in .env
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15.17
+    container_name: hermes-postgres
+    hostname: postgres
+    environment:
+      POSTGRES_USER: hermes
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hermes}
+      POSTGRES_DB: hermes
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hermes -d hermes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - hermes-local
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # LocalStack 4.14 — community edition (no auth token required)
+  # Endpoint  : http://localhost:4566
+  # Services  : sns, sqs, s3, secretsmanager, ssm
+  # Region    : us-east-1
+  # ---------------------------------------------------------------------------
+  localstack:
+    image: localstack/localstack:4.14
+    container_name: hermes-localstack
+    hostname: localstack
+    environment:
+      SERVICES: sns,sqs,s3,secretsmanager,ssm
+      DEFAULT_REGION: us-east-1
+      DATA_DIR: /var/lib/localstack/data
+      DEBUG: "0"
+      # To enable auth (Option A), uncomment the line below and set the value in .env:
+      # LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - hermes-local
+    restart: unless-stopped
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  hermes-local:
+    driver: bridge
+    name: hermes-local
+
+# ---------------------------------------------------------------------------
+# Named volumes — all removed cleanly by: docker compose down -v
+# ---------------------------------------------------------------------------
+volumes:
+  solace-data:
+    driver: local
+  postgres-data:
+    driver: local
+  localstack-data:
+    driver: local

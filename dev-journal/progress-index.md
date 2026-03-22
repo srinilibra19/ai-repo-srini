@@ -3,7 +3,7 @@ Last updated: 2026-03-22
 
 | Story ID    | Title                                                     | Status  | Sprint | Journal |
 |-------------|-----------------------------------------------------------|---------|--------|---------|
-| US-E0-001   | Docker Compose stack for local development                | PENDING | 1      | —       |
+| US-E0-001   | Docker Compose stack for local development                | COMPLETE | 1      | dev-journal/E0-001.md |
 | US-E0-002   | Self-signed mTLS certificate generation for local Solace  | PENDING | 1      | —       |
 | US-E0-003   | LocalStack initialisation for SNS FIFO and SQS FIFO       | PENDING | 1      | —       |
 | US-E0-004   | Solace local queue and subscription provisioning          | PENDING | 1      | —       |

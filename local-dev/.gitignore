@@ -1,0 +1,30 @@
+# Containers with Middleware — local-dev gitignore
+#
+# This file prevents sensitive local development files from being committed to Git.
+
+# ---------------------------------------------------------------------------
+# Environment variables — contains real passwords and tokens
+# ---------------------------------------------------------------------------
+.env
+
+# ---------------------------------------------------------------------------
+# Generated TLS certificates (created by certs/generate-certs.sh — US-E0-002)
+# The generate script is committed; the output files are not.
+# ---------------------------------------------------------------------------
+certs/ca.crt
+certs/ca.key
+certs/server.crt
+certs/server.key
+certs/client.crt
+certs/client.key
+certs/client-keystore.p12
+certs/truststore.jks
+certs/*.pem
+certs/*.srl
+
+# ---------------------------------------------------------------------------
+# Docker local volume mounts (if developer switches from named volumes to bind mounts)
+# ---------------------------------------------------------------------------
+solace-volume/
+postgres-volume/
+localstack-volume/
