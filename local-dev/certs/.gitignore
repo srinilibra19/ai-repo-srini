@@ -1,0 +1,24 @@
+# Containers with Middleware — local-dev/certs gitignore
+#
+# This directory contains generate-certs.sh (committed) and the files it generates (not committed).
+# All generated certificate artefacts are excluded here and in local-dev/.gitignore.
+#
+# Never add real certificates, private keys, or keystores to Git.
+
+# Private keys — owner-read only (chmod 600)
+*.key
+
+# Certificates
+*.crt
+
+# Combined PEM bundles (may contain private key material)
+*.pem
+
+# Keystores and truststores
+*.p12
+*.jks
+
+# OpenSSL working files cleaned up by the script — excluded as belt-and-suspenders
+*.csr
+*.srl
+*.cnf

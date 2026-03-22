@@ -1,59 +1,50 @@
 # Active Story Handoff
 Last updated : 2026-03-22T00:00:00
-Story        : US-E0-001 — Docker Compose stack for local development
+Story        : US-E0-003 — LocalStack initialisation for SNS FIFO and SQS FIFO
 Status       : COMPLETE
 Sprint       : 1
 
 ## Acceptance Criteria Status
-- [x] `docker compose up` starts: Solace PubSub+ Standard (ports 55555, 55443, 8080), PostgreSQL 15 (port 5432), LocalStack (port 4566)
-- [x] All services have health checks defined
-- [x] Solace admin UI accessible at `http://localhost:8080` (admin/admin)
-- [x] PostgreSQL accessible at `localhost:5432` with `hermes`/`hermes` credentials
-- [x] LocalStack SNS/SQS/S3/SecretsManager/SSM services available
-- [x] `docker compose down -v` cleanly removes volumes
-- [x] README documents how to start the local stack
+- [x] LocalStack init script creates: hermes-flightschedules.fifo SNS FIFO topic; hermes-flightschedules-consumer-a.fifo SQS FIFO queue; hermes-flightschedules-dlq.fifo SQS DLQ FIFO queue
+- [x] SNS subscription from topic to SQS queue is configured (raw message delivery, SQS access policy)
+- [x] S3 bucket hermes-claim-check-local is created for large message payloads (public access blocked)
+- [x] LocalStack Secrets Manager contains test Solace credentials and cert paths
+- [x] Init script runs automatically on docker compose up (via LocalStack init/ready.d mechanism)
 
 ## Sub-task Status
-- [x] ST-01: docker-compose.yml → DONE
-- [x] ST-02: .env.example → DONE
-- [x] ST-03: .gitignore → DONE
-- [x] ST-04: README.md → DONE
+- [x] ST-01: bootstrap.sh → DONE
+- [x] ST-02: docker-compose.yml LocalStack mount → DONE
 
 ## Files Created / Modified
 | File Path | Status | Notes |
 |-----------|--------|-------|
-| local-dev/docker-compose.yml | DONE | Solace + PostgreSQL 15.17 + LocalStack 4.14, health checks, named volumes, hermes-local network |
-| local-dev/.env.example | DONE | Placeholders only — LOCALSTACK_AUTH_TOKEN pre-staged as comment for Option A switch |
-| local-dev/.gitignore | DONE | Excludes .env and all cert outputs from US-E0-002 |
-| README.md | DONE | Full local dev quickstart, LocalStack auth warning, all service access details |
+| local-dev/localstack-init/bootstrap.sh | DONE | SNS FIFO, SQS FIFO, DLQ, S3, Secrets Manager; idempotent |
+| local-dev/docker-compose.yml | DONE | Added ./localstack-init:/etc/localstack/init/ready.d:ro |
 
 ## Key Interfaces Defined
-None — this story is pure configuration, no Java interfaces.
+None — infrastructure provisioning script only.
 
 ## Design Decisions
 | Decision | Why | Alternatives Rejected |
 |----------|-----|----------------------|
-| postgres:15.17 pinned | Exact reproducibility per CLAUDE.md minimum version | postgres:15 (floating patch), postgres:17 (AC says 15) |
-| LocalStack community (no auth) | Auth not yet obtained; enforcement from 2026-03-23 | Option A (auth token) — deferred |
-| LOCALSTACK_AUTH_TOKEN pre-staged as comment | 2-line switch to Option A later — no rewrite | Not including it at all |
-| solace:latest | CLAUDE.md spec explicitly says Latest for local broker | Pinned digest |
-| POSTGRES_PASSWORD uses ${VAR:-default} syntax | Allows override via .env without breaking compose if .env absent | Hardcoded value |
+| LocalStack init/ready.d mechanism | Native to LocalStack 4.x, no extra container | Separate one-shot service with depends_on |
+| aws_cmd() wrapper function | Eliminates repetition of endpoint/region/format flags | Inline flags on every call |
+| delete-force + recreate for Secrets Manager | Secrets Manager create-secret not idempotent | Check-then-create (more complex) |
+| SQS redrive policy set after queue creation | Avoids bash quoting issues with inline nested JSON | Inline in create-queue attributes |
 
-## Tried and Rejected
-None.
-
-## Open Questions
-- LocalStack auth enforcement: developer must obtain token from https://app.localstack.cloud/ before 2026-03-23 if community mode stops working. See README.md LocalStack auth notice.
-
-## Deviations from CLAUDE.md
-None.
+## Accepted Deviations
+| Item | Reason | User decision |
+|------|--------|---------------|
+| Multi-line JSON heredoc in CLI --attributes | Functional for local dev; python3 compaction adds complexity | Accepted 2026-03-22 |
+| HTTP plaintext to LocalStack | LocalStack community limitation | Accepted 2026-03-22 |
+| Local dev credentials in git-tracked script | Consistent with .env.example accepted pattern | Accepted 2026-03-22 |
 
 ## Exact Next Step
-Begin US-E0-002: implement local-dev/certs/generate-certs.sh — self-signed CA + server cert + client cert + PKCS12 keystore + JKS truststore. Read US-E0-002 block from backlog.md first.
+Begin US-E0-004: implement local-dev/solace-init/provision-queues.sh — SEMPv2 queue and topic subscription provisioning.
 
 ## Context to Load on Resume
 Read these files (in order) before resuming — do not read anything else until these are loaded:
 1. dev-journal/CURRENT.md (already reading this)
-2. local-dev/docker-compose.yml (to understand Solace container config for cert volume mount)
-3. backlog.md — US-E0-002 block only
-CLAUDE.md sections needed: Security Standards (certs), Local Dev Quick Reference
+2. local-dev/docker-compose.yml (to understand Solace container hostname and admin credentials)
+3. backlog.md — US-E0-004 block only
+CLAUDE.md sections needed: Local Dev Quick Reference
