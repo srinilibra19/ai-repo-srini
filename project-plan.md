@@ -1,4 +1,4 @@
-# CAG Hermes — Project Plan
+# Containers with Middleware — Project Plan
 ## Agile Delivery Plan: Resilient Solace Subscription Layer (MVP: flightschedules destination)
 
 | Field | Value |

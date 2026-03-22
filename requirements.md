@@ -1,4 +1,4 @@
-# CAG Hermes - Solace Messaging Middleware Integration with AWS
+# Containers with Middleware - Solace Messaging Middleware Integration with AWS
 
 ## Detailed Requirements Specification
 
@@ -405,7 +405,7 @@ The application supports subscribing to **N distinct Solace destinations** simul
 | SEMP Access Level | **Read-only** | Monitoring only; no management operations |
 | Polling Interval | **30 seconds** | For DMQ depth, queue depth, connection count, spool usage |
 
-**REQ-SOL-041:** The following SEMP metrics SHALL be monitored and published as CloudWatch custom metrics under the `CAGHermes/Solace` namespace (via the ADOT Collector or a dedicated monitoring sidecar):
+**REQ-SOL-041:** The following SEMP metrics SHALL be monitored and published as CloudWatch custom metrics under the `CustomerMiddleware/Solace` namespace (via the ADOT Collector or a dedicated monitoring sidecar):
 
 | SEMP Metric | CloudWatch Metric Name | Alarm Threshold | Severity |
 |-------------|----------------------|-----------------|----------|
@@ -923,17 +923,17 @@ The application supports subscribing to **N distinct Solace destinations** simul
 
 | Metric Name | Namespace | Description | Unit |
 |-------------|-----------|-------------|------|
-| `solace.messages.received` | `CAGHermes` | Messages received from Solace per minute | Count |
-| `solace.messages.processed` | `CAGHermes` | Messages successfully processed per minute | Count |
-| `solace.messages.failed` | `CAGHermes` | Messages failed processing per minute | Count |
-| `solace.connection.status` | `CAGHermes` | Connection status (1=connected, 0=disconnected) | None |
-| `solace.reconnect.count` | `CAGHermes` | Reconnection attempts | Count |
-| `solace.dmq.depth` | `CAGHermes` | Solace DMQ message count (per destination, via SEMP) | Count |
-| `audit.insert.latency` | `CAGHermes` | RDS audit insert time | Milliseconds |
-| `sns.publish.latency` | `CAGHermes` | SNS FIFO publish time | Milliseconds |
-| `outbox.pending.count` | `CAGHermes` | Number of pending outbox records | Count |
-| `outbox.notify.latency` | `CAGHermes` | Time from outbox INSERT to poller pickup (LISTEN/NOTIFY) | Milliseconds |
-| `processing.e2e.latency` | `CAGHermes` | End-to-end processing time (Solace receive to SNS publish) | Milliseconds |
+| `solace.messages.received` | `CustomerMiddleware` | Messages received from Solace per minute | Count |
+| `solace.messages.processed` | `CustomerMiddleware` | Messages successfully processed per minute | Count |
+| `solace.messages.failed` | `CustomerMiddleware` | Messages failed processing per minute | Count |
+| `solace.connection.status` | `CustomerMiddleware` | Connection status (1=connected, 0=disconnected) | None |
+| `solace.reconnect.count` | `CustomerMiddleware` | Reconnection attempts | Count |
+| `solace.dmq.depth` | `CustomerMiddleware` | Solace DMQ message count (per destination, via SEMP) | Count |
+| `audit.insert.latency` | `CustomerMiddleware` | RDS audit insert time | Milliseconds |
+| `sns.publish.latency` | `CustomerMiddleware` | SNS FIFO publish time | Milliseconds |
+| `outbox.pending.count` | `CustomerMiddleware` | Number of pending outbox records | Count |
+| `outbox.notify.latency` | `CustomerMiddleware` | Time from outbox INSERT to poller pickup (LISTEN/NOTIFY) | Milliseconds |
+| `processing.e2e.latency` | `CustomerMiddleware` | End-to-end processing time (Solace receive to SNS publish) | Milliseconds |
 
 ### 11.3 Logging
 
@@ -1382,7 +1382,7 @@ CREATE TRIGGER outbox_insert_notify
       "Action": ["cloudwatch:PutMetricData"],
       "Resource": "*",
       "Condition": {
-        "StringEquals": { "cloudwatch:namespace": "CAGHermes" }
+        "StringEquals": { "cloudwatch:namespace": "CustomerMiddleware" }
       }
     },
     {
@@ -1555,8 +1555,8 @@ autoscaling:
     triggers:
       - type: aws-cloudwatch
         metadata:
-          namespace: CAGHermes
-          expression: "SELECT MAX(outbox.pending.count) FROM CAGHermes WHERE Destination = 'orders'"
+          namespace: CustomerMiddleware
+          expression: "SELECT MAX(outbox.pending.count) FROM CustomerMiddleware WHERE Destination = 'orders'"
           targetMetricValue: "50"
 
 solace:
@@ -1649,4 +1649,4 @@ When adding a new Solace destination to the system:
 
 *End of Requirements Document*
 
-*Document prepared for CAG Hermes project. All requirements are subject to review and approval by project stakeholders.*
+*Document prepared for Containers with Middleware project. All requirements are subject to review and approval by project stakeholders.*

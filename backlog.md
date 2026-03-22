@@ -1,4 +1,4 @@
-# CAG Hermes — Product Backlog
+# Containers with Middleware — Product Backlog
 ## MVP: flightschedules destination
 
 | Field | Value |
@@ -18,7 +18,7 @@
 ---
 
 ## Epic E0: Local Development Environment
-**Goal:** Developer can run the full CAG Hermes stack locally (Solace, PostgreSQL, LocalStack, Spring Boot app) without any AWS access. This enables fast local iteration before any AWS infrastructure exists.
+**Goal:** Developer can run the full Containers with Middleware stack locally (Solace, PostgreSQL, LocalStack, Spring Boot app) without any AWS access. This enables fast local iteration before any AWS infrastructure exists.
 
 ---
 
@@ -243,7 +243,7 @@
 - [ ] Policy for SNS FIFO publish: `sns:Publish`, `sns:PublishBatch` on `hermes-flightschedules.fifo` ARN only
 - [ ] Policy for Secrets Manager read: `secretsmanager:GetSecretValue` on `hermes/solace/*` and `hermes/db/*` ARNs only
 - [ ] Policy for KMS: `kms:Decrypt`, `kms:GenerateDataKey` on relevant CMK ARNs
-- [ ] Policy for CloudWatch: `cloudwatch:PutMetricData` on `CAGHermes` namespace only
+- [ ] Policy for CloudWatch: `cloudwatch:PutMetricData` on `CustomerMiddleware` namespace only
 - [ ] Policy for X-Ray: `xray:PutTraceSegments`, `xray:PutTelemetryRecords`
 - [ ] Policy for S3 claim-check: `s3:PutObject`, `s3:GetObject` on `hermes-claim-check-{env}/*` only
 - [ ] Kubernetes ServiceAccount `hermes-flightschedules-sa` annotated with IAM role ARN
@@ -772,7 +772,7 @@
 
 **AC:**
 - [ ] HPA: `minReplicas=2`, `maxReplicas=10`, scale out when avg CPU > 70% for 3 min, scale in when < 30% for 10 min with `stabilizationWindowSeconds=300`
-- [ ] KEDA `ScaledObject`: trigger on CloudWatch metric `outbox.pending.count` in namespace `CAGHermes` with dimension `Destination=flightschedules`; threshold=100 (add pod per 100 pending); `minReplicaCount=2`, `maxReplicaCount=10`
+- [ ] KEDA `ScaledObject`: trigger on CloudWatch metric `outbox.pending.count` in namespace `CustomerMiddleware` with dimension `Destination=flightschedules`; threshold=100 (add pod per 100 pending); `minReplicaCount=2`, `maxReplicaCount=10`
 - [ ] KEDA IRSA: `ScaledObject` uses ServiceAccount with CloudWatch read permissions
 - [ ] HPA and KEDA coexist correctly (KEDA manages HPA internally when `ScaledObject` is used)
 - [ ] Test: artificially backfill 500 outbox records → confirm KEDA triggers scale-out to 5+ pods within 3 minutes
@@ -825,7 +825,7 @@
 - [ ] Gauge: `solace.connection.status` (1/0), `outbox.pending.count`
 - [ ] Timers: `audit.insert.latency`, `sns.publish.latency`, `processing.e2e.latency`, `outbox.notify.latency`
 - [ ] Counter: `solace.reconnect.count`
-- [ ] All metrics in CloudWatch namespace `CAGHermes` with dimension `Destination=flightschedules`, `Environment={env}`
+- [ ] All metrics in CloudWatch namespace `CustomerMiddleware` with dimension `Destination=flightschedules`, `Environment={env}`
 - [ ] SEMP monitoring sidecar container (or CronJob) polls SEMPv2 every 30s for `solace.dmq.depth` and queue metrics and publishes to CloudWatch
 
 ---
