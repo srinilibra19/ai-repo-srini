@@ -9,7 +9,7 @@
 | **MVP Scope** | Single destination: `flightschedules` |
 | **Sprint Length** | 2 weeks |
 | **Total Sprints** | 10 (20 weeks) |
-| **Platform** | ROSA (Red Hat OpenShift on AWS) — Greenfield |
+| **Platform** | ROSA (Red Hat OpenShift on AWS) — Greenfield | 
 
 ---
 
