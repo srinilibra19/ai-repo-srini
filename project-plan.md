@@ -282,26 +282,27 @@ Every user story is done when:
 
 | Layer | Technology | Version |
 |---|---|---|
-| Language | Java | 17+ |
-| Framework | Spring Boot | 3.x |
-| Messaging client | Solace Spring Boot Starter (JCSMP) | 10.21+ |
-| Build tool | Maven | 3.9+ |
-| Container base | Red Hat UBI 9 + Eclipse Temurin JRE 17 | Latest |
-| Container platform | ROSA (OpenShift 4.14+, Kubernetes 1.27+) | 4.14+ |
-| IaC | Terraform + Helm | TF 1.7+, Helm 3.x |
+| Language | Java | 17.0.18 LTS |
+| Framework | Spring Boot | 3.5.x |
+| Messaging client | Solace Spring Boot Starter (JCSMP) | Starter 5.2.0, JCSMP 10.21+ |
+| Build tool | Maven | 3.9.14 |
+| Container base | Red Hat UBI 9 + Eclipse Temurin JRE 17 | Latest quarterly patch |
+| Container platform | ROSA (OpenShift 4.18+, Kubernetes 1.31+) | 4.18+ |
+| IaC — Terraform | Terraform | 1.14.7 |
+| IaC — Helm | Helm | 4.1.3 |
 | CI/CD | AWS CodePipeline + CodeBuild | N/A (managed) |
-| Database | Amazon RDS for PostgreSQL | 15+ |
-| DB migrations | Flyway | 9.x |
-| Connection pool | HikariCP | (Spring Boot default) |
-| Resilience | Resilience4j | 2.x |
+| Database | Amazon RDS for PostgreSQL | 15.17 minimum (17.9 preferred) |
+| DB migrations | Flyway | 11.x (via Spring Boot 3.5 BOM) |
+| Connection pool | HikariCP | BOM-managed (6.x via SB 3.5) |
+| Resilience | Resilience4j | 2.4.0 |
 | Messaging | SNS FIFO + SQS FIFO | N/A (managed) |
-| Secrets | AWS Secrets Manager + External Secrets Operator | ESO 0.9+ |
+| Secrets | AWS Secrets Manager + External Secrets Operator | ESO 2.2.0 |
 | Observability | ADOT Collector + CloudWatch + X-Ray | N/A (managed) |
-| Tracing | OpenTelemetry SDK | 1.x |
-| Local dev AWS | LocalStack | 3.x |
+| Tracing | OpenTelemetry Java SDK + Agent | SDK 1.60.x, Agent 2.26.0 |
+| Local dev AWS | LocalStack | 4.14 / 2026.03.x |
 | Local dev broker | Solace PubSub+ Standard (Docker) | Latest |
 | Load testing | SDKPerf (Solace) + JMeter | N/A |
-| Testing | JUnit 5 + Mockito + Testcontainers | Latest |
+| Testing | JUnit 5.14.x + Mockito 5.22.x + Testcontainers 2.0.4 | BOM-managed |
 
 ---
 

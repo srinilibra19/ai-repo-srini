@@ -4,6 +4,19 @@ This file governs how Claude assists in building this project. All code, infrast
 
 ---
 
+## Automatic Code Review — MANDATORY
+
+**After every code generation step** (new class, updated method, new Terraform resource, new Helm template), Claude MUST:
+
+1. Immediately and without being asked, invoke `/code-reviewer` to review the generated code against all standards in this file.
+2. Immediately and without being asked, invoke `/security-reviewer` to review the generated code for OWASP Top 10 and project-specific security issues.
+3. Present both review checklists to the user before marking any task complete.
+4. Wait for the user's Yes/No response on whether to proceed with corrections before making any further edits.
+
+This applies to: all Java files, all Terraform files, all Helm templates, all SQL migration files, all shell scripts. It does not apply to documentation-only changes (`.md` files).
+
+---
+
 ## Project Overview
 
 **Containers with Middleware** is a production-grade, resilient Solace-to-AWS messaging bridge.
@@ -190,27 +203,29 @@ containers-with-middleware/
 
 ## Technology Stack
 
-| Layer | Technology | Version |
-|---|---|---|
-| Language | Java | 17 |
-| Framework | Spring Boot | 3.x |
-| Messaging client | Solace Spring Boot Starter (JCSMP) | 10.21+ |
-| Build | Maven | 3.9+ |
-| Container base | Red Hat UBI 9 + Eclipse Temurin JRE 17 | Latest |
-| Container platform | ROSA (OpenShift 4.14+, Kubernetes 1.27+) | 4.14+ |
-| IaC | Terraform + Helm | TF 1.7+, Helm 3.x |
-| CI/CD | AWS CodePipeline + CodeBuild | Managed |
-| Database | Amazon RDS for PostgreSQL | 15+ |
-| DB migrations | Flyway | 9.x |
-| Connection pool | HikariCP | Spring Boot default |
-| Resilience | Resilience4j | 2.x |
-| Messaging | SNS FIFO + SQS FIFO | Managed |
-| Secrets | AWS Secrets Manager + External Secrets Operator | ESO 0.9+ |
-| Observability | ADOT Collector + CloudWatch + X-Ray | Managed |
-| Tracing | OpenTelemetry SDK | 1.x |
-| Local AWS | LocalStack | 3.x |
-| Local broker | Solace PubSub+ Standard (Docker) | Latest |
-| Testing | JUnit 5 + Mockito + Testcontainers | Latest |
+| Layer | Technology | Version | Notes |
+|---|---|---|---|
+| Language | Java | 17.0.18 (LTS) | Temurin or Red Hat builds only. Oracle free builds stopped at 17.0.12. Plan Java 21 LTS migration post-MVP |
+| Framework | Spring Boot | 3.5.x (latest patch) | Must be on 3.5.x — 3.3 and 3.4 are past OSS EOL. Spring Boot 4.0.x is the new major; migrate post-MVP |
+| Messaging client | Solace Spring Boot Starter (JCSMP) | 5.2.0 (Starter), JCSMP 10.21+ | Verify compatibility before any Spring Boot major upgrade |
+| Build | Maven | 3.9.14 | Current stable 3.x line. Maven 4.0 not yet GA |
+| Container base | Red Hat UBI 9 + Eclipse Temurin JRE 17 | Latest quarterly patch | Pull latest image on every build — do not pin to a stale digest |
+| Container platform | ROSA (OpenShift 4.18+, Kubernetes 1.31+) | 4.18+ | 4.14–4.16 are EOL; 4.17 EOL April 1 2026. Minimum safe version is 4.18 |
+| IaC — Terraform | Terraform | 1.14.7 | 1.7.x is outdated by 7 minor versions. HashiCorp BSL license — evaluate OpenTofu 1.11.x as OSS alternative |
+| IaC — Helm | Helm | 4.1.3 | Helm 3.x EOL November 2026. Migrate to Helm 4 within 2026 |
+| CI/CD | AWS CodePipeline + CodeBuild | Managed | — |
+| Database | Amazon RDS for PostgreSQL | 15.17 minimum (17.9 preferred) | PG 15 community EOL Nov 2027. PG 16/17 preferred for new deployments |
+| DB migrations | Flyway | 11.x (Spring Boot 3.5 BOM) | Flyway 9.x is unmaintained — two major versions behind. Spring Boot 3.5 bundles 11.x automatically |
+| Connection pool | HikariCP | BOM-managed (6.x via SB 3.5) | Never override manually — let Spring Boot BOM manage |
+| Resilience | Resilience4j | 2.4.0 | 2.4.0 adds Spring Boot 4 compatibility for future migration |
+| Messaging | SNS FIFO + SQS FIFO | Managed | — |
+| Secrets | AWS Secrets Manager + External Secrets Operator | ESO 2.2.0 | ESO 0.9.x is unsupported — two major versions behind. Breaking changes in v1.0 and v2.0; review migration guide |
+| Observability | ADOT Collector + CloudWatch + X-Ray | Managed | — |
+| Tracing | OpenTelemetry Java SDK + Agent | SDK 1.60.x, Agent 2.26.0 | Monthly cadence; keep on latest patch |
+| Local AWS | LocalStack | 4.14 / 2026.03.x | LocalStack 3.x is two major versions behind. Auth now required for free tier from March 23 2026 |
+| Local broker | Solace PubSub+ Standard (Docker) | Latest | — |
+| Testing — Unit | JUnit 5.14.x + Mockito 5.22.x | 5.14.x (SB 3.5 BOM managed) | JUnit 6.0 released for Spring Boot 4. JUnit 5.x correct for Spring Boot 3.x |
+| Testing — Integration | Testcontainers | 2.0.4 | Verify 2.x migration if currently on 1.x — breaking changes exist |
 
 ---
 
