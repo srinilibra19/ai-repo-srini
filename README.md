@@ -123,6 +123,92 @@ The current setup uses community edition without an auth token, which may stop w
 
 ---
 
+## Publishing Test Messages (SDKPerf)
+
+[SDKPerf](https://solace.com/downloads/) is Solace's performance test tool and the simplest way to publish messages into the local broker without running the full application.
+
+### Download SDKPerf
+
+1. Go to https://solace.com/downloads/ → **Other Downloads** → **SDKPerf**
+2. Download the Java edition (`sdkperf-java-<version>.zip`)
+3. Extract to a convenient directory (e.g. `C:\tools\sdkperf`)
+4. On Windows: use `sdkperf_java.bat` — on Linux/macOS: use `sdkperf_java`
+
+> The local Solace broker must be running (`docker compose up -d`) before publishing.
+> Confirm the broker is healthy: `docker compose ps` — solace must show `healthy`.
+
+### Verify the queue is provisioned
+
+Check that `hermes-solace-init` ran successfully before publishing:
+
+```bash
+# Should show [OK] or [SKIP] for all 3 resources
+docker compose logs hermes-solace-init
+```
+
+Then confirm the queue exists via the Solace Admin UI:
+**http://localhost:8080** → Messaging → Queues → `hermes.flightschedules`
+
+---
+
+### Publish 10 standard test messages
+
+```bash
+# Windows
+sdkperf_java.bat -cip=tcp://localhost:55555 -cu=admin@default -cp=admin ^
+  -pql=flightschedules/events -mn=10 -mr=1 -msa=1024
+
+# Linux / macOS
+./sdkperf_java -cip=tcp://localhost:55555 -cu=admin@default -cp=admin \
+  -pql=flightschedules/events -mn=10 -mr=1 -msa=1024
+```
+
+| Flag | Value | Meaning |
+|------|-------|---------|
+| `-cip` | `tcp://localhost:55555` | Broker SMF plaintext endpoint |
+| `-cu` | `admin@default` | Username @ Message VPN |
+| `-cp` | `admin` | Password |
+| `-pql` | `flightschedules/events` | Topic to publish to — matched by the `flightschedules/>` subscription |
+| `-mn` | `10` | Total messages to publish |
+| `-mr` | `1` | Rate: 1 message/second |
+| `-msa` | `1024` | Message size: 1 KB |
+
+---
+
+### Publish large messages (>200 KB — triggers claim-check path)
+
+Messages exceeding 200 KB will be stored in S3 and replaced with a claim-check reference by the consumer application.
+
+```bash
+# Windows — 5 messages at 250 KB each
+sdkperf_java.bat -cip=tcp://localhost:55555 -cu=admin@default -cp=admin ^
+  -pql=flightschedules/events -mn=5 -mr=1 -msa=256000
+
+# Linux / macOS
+./sdkperf_java -cip=tcp://localhost:55555 -cu=admin@default -cp=admin \
+  -pql=flightschedules/events -mn=5 -mr=1 -msa=256000
+```
+
+> **Claim-check threshold:** 200 KB = 204,800 bytes. `-msa=256000` (250 KB) reliably exceeds it.
+
+---
+
+### Verify messages arrived in the queue
+
+After publishing, confirm messages are queued:
+
+```bash
+# Check queue depth via Solace Admin UI
+# http://localhost:8080 → Messaging → Queues → hermes.flightschedules → Messages Spooled
+
+# Or check via SEMP v2 API:
+curl -s -u admin:admin \
+  "http://localhost:8080/SEMP/v2/monitor/msgVpns/default/queues/hermes.flightschedules" \
+  | grep -o '"msgSpoolUsage":[0-9]*'
+```
+
+---
+
 ## Running the Application Locally
 
 ```bash

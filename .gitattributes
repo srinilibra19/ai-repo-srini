@@ -1,0 +1,43 @@
+# =============================================================================
+# .gitattributes — Containers with Middleware
+#
+# Enforces consistent line endings across platforms.
+# Shell scripts mounted into Linux Docker containers MUST have LF endings —
+# CRLF causes "bad interpreter: /usr/bin/env\r" failures inside containers.
+# This file overrides each developer's local core.autocrlf setting.
+# =============================================================================
+
+# Default: auto-normalise text files
+* text=auto
+
+# Shell scripts — always LF, on every platform (Windows, macOS, Linux)
+# Applies to: local-dev init scripts, CI/CD buildspecs, load test scripts
+*.sh    text eol=lf
+
+# YAML and properties — LF (Spring Boot config, Helm values, Terraform)
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.tf    text eol=lf
+*.tfvars text eol=lf
+*.properties text eol=lf
+
+# Java source — LF
+*.java  text eol=lf
+
+# Maven wrapper — LF for Unix script, CRLF for Windows batch
+mvnw    text eol=lf
+mvnw.cmd text eol=crlf
+
+# SQL migration files — LF
+*.sql   text eol=lf
+
+# Markdown and text — LF
+*.md    text eol=lf
+
+# Binary files — no line-ending normalisation
+*.p12   binary
+*.jks   binary
+*.png   binary
+*.jpg   binary
+*.jar   binary
+*.class binary

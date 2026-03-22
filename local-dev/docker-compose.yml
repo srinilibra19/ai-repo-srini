@@ -86,6 +86,26 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
+  # Solace init — one-shot service that provisions queues and subscriptions
+  # via the SEMPv2 REST API after Solace is healthy.
+  # Runs once and exits (restart: "no"). Re-run manually with:
+  #   docker compose run --rm hermes-solace-init
+  # Requires: local-dev/solace-init/provision-queues.sh (US-E0-004)
+  # ---------------------------------------------------------------------------
+  hermes-solace-init:
+    image: curlimages/curl:8
+    container_name: hermes-solace-init
+    depends_on:
+      solace:
+        condition: service_healthy
+    volumes:
+      - ./solace-init:/init:ro
+    entrypoint: ["/bin/sh", "/init/provision-queues.sh"]
+    networks:
+      - hermes-local
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
   # LocalStack 4.14 — community edition (no auth token required)
   # Endpoint  : http://localhost:4566
   # Services  : sns, sqs, s3, secretsmanager, ssm
