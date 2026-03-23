@@ -95,10 +95,16 @@ QUEUE_ARN=$(aws_cmd sqs get-queue-attributes \
 echo "    URL: ${QUEUE_URL}"
 echo "    ARN: ${QUEUE_ARN}"
 
-# Set redrive policy separately — avoids bash quoting issues with inline JSON
+# Set redrive policy separately.
+# CLI v1 shorthand cannot parse quoted JSON values in --attributes; use python3 to
+# JSON-encode the nested RedrivePolicy string so CLI v1 receives a valid JSON object.
+python3 -c "
+import json, sys
+print(json.dumps({'RedrivePolicy': json.dumps({'deadLetterTargetArn': sys.argv[1], 'maxReceiveCount': '3'})}))
+" "$DLQ_ARN" > /tmp/hermes-redrive.json
 aws_cmd sqs set-queue-attributes \
   --queue-url "$QUEUE_URL" \
-  --attributes "RedrivePolicy={\"deadLetterTargetArn\":\"${DLQ_ARN}\",\"maxReceiveCount\":\"3\"}" \
+  --attributes "$(cat /tmp/hermes-redrive.json)" \
   > /dev/null
 
 # ---------------------------------------------------------------------------
@@ -113,24 +119,28 @@ aws_cmd sns subscribe \
   --attributes RawMessageDelivery=true \
   > /dev/null
 
-# Grant SNS permission to write to the SQS queue
-SQS_POLICY=$(cat <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Sid": "AllowSnsPublish",
-    "Effect": "Allow",
-    "Principal": {"Service": "sns.amazonaws.com"},
-    "Action": "sqs:SendMessage",
-    "Resource": "${QUEUE_ARN}",
-    "Condition": {"ArnEquals": {"aws:SourceArn": "${SNS_TOPIC_ARN}"}}
-  }]
+# Grant SNS permission to write to the SQS queue.
+# Use python3 to JSON-encode the Policy string — CLI v1 shorthand cannot handle
+# quoted JSON values in --attributes.
+python3 -c "
+import json, sys
+queue_arn, sns_arn = sys.argv[1], sys.argv[2]
+policy = {
+    'Version': '2012-10-17',
+    'Statement': [{
+        'Sid': 'AllowSnsPublish',
+        'Effect': 'Allow',
+        'Principal': {'Service': 'sns.amazonaws.com'},
+        'Action': 'sqs:SendMessage',
+        'Resource': queue_arn,
+        'Condition': {'ArnEquals': {'aws:SourceArn': sns_arn}}
+    }]
 }
-EOF
-)
+print(json.dumps({'Policy': json.dumps(policy)}))
+" "$QUEUE_ARN" "$SNS_TOPIC_ARN" > /tmp/hermes-sqs-policy.json
 aws_cmd sqs set-queue-attributes \
   --queue-url "$QUEUE_URL" \
-  --attributes "Policy=${SQS_POLICY}" \
+  --attributes "$(cat /tmp/hermes-sqs-policy.json)" \
   > /dev/null
 echo "    Subscription configured"
 

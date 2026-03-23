@@ -1,71 +1,40 @@
 # Active Story Handoff
-Last updated : 2026-03-22T23:00:00
-Story        : US-E0-004 — Solace local queue and subscription provisioning
-Status       : COMPLETE
+Last updated : 2026-03-23T02:00:00
+Story        : US-E0-005 — Spring Boot application-local.yml
+Status       : NOT STARTED
 Sprint       : 1
 
-## Acceptance Criteria Status
-- [x] SEMPv2 init script provisions: queue hermes.flightschedules (non-exclusive, 4GB spool), topic subscription flightschedules/>, DMQ hermes.flightschedules.dmq
-- [x] Init script runs on Solace container startup (hermes-solace-init one-shot service, depends_on: service_healthy)
-- [x] SDKPerf command documented in README to publish 10 test messages to flightschedules/events
-- [x] Test publisher can publish messages of variable size (including >200 KB)
+## Previous Story Completed
+US-E0-004 — Solace local queue and subscription provisioning — COMPLETE
+Local stack confirmed healthy on Windows 2026-03-23. All 13 verify.bat checks pass.
 
-## Sub-task Status
-- [x] ST-01: provision-queues.sh → DONE
-- [x] ST-02: docker-compose.yml hermes-solace-init service → DONE
-- [x] ST-03: README.md SDKPerf documentation → DONE
-- [x] ST-04: local-dev/setup.sh (Linux/macOS one-command setup) → DONE
-- [x] ST-05: local-dev/setup.bat (Windows one-command setup) → DONE
-- [x] ST-06: local-dev/verify.sh (Linux/macOS verification) → DONE
-- [x] ST-07: local-dev/verify.bat (Windows verification) → DONE
+## Fixes Applied During Local Stack Run (2026-03-23)
+| File | Fix | Root Cause |
+|------|-----|------------|
+| local-dev/docker-compose.yml | shm_size: 256m → 1g | Solace requires 1000 MB /dev/shm |
+| local-dev/docker-compose.yml | nofile hard: 38048 → 1048576 | Solace POST Violation [022]: requires 1048576 |
+| local-dev/docker-compose.yml | curlimages/curl:8 → curlimages/curl:8.12.1 | Tag :8 does not exist on Docker Hub |
+| local-dev/localstack-init/bootstrap.sh | Added AWS_ACCESS_KEY_ID/SECRET_ACCESS_KEY/DEFAULT_REGION env vars | AWS CLI requires credentials even for LocalStack |
+| local-dev/localstack-init/bootstrap.sh | Replaced --no-cli-pager with AWS_PAGER="" | --no-cli-pager is CLI v2 only; LocalStack ships CLI v1 |
+| local-dev/localstack-init/bootstrap.sh | Replaced --attributes shorthand for set-queue-attributes with python3 JSON encoding | CLI v1 shorthand parser cannot handle quoted JSON values in --attributes |
+| local-dev/verify.bat | Escaped check^(s^) in else block | ) in check(s) closed the else ( block prematurely |
+| local-dev/certs/generate-certs.sh | Added MSYS_NO_PATHCONV=1 + cygpath -m for OUT_W | MSYS2 auto-converts /CN= to Windows path; native binaries need Windows-style paths |
+| local-dev/certs/generate-certs.sh | CA key 4096 → 2048 bits | 4096-bit key generation hangs on Windows (entropy issue) |
+| local-dev/setup.bat | goto-based skip replacing if/else block for bash check | CMD label inside parenthesised if/else block causes ": was unexpected at this time." |
+| local-dev/setup.bat | Derive GIT_BASH_EXE from git.exe path instead of bare bash | WSL relay bash on PATH is non-functional for running shell scripts |
 
-## Files Created / Modified
-| File Path | Status | Notes |
-|-----------|--------|-------|
-| local-dev/solace-init/provision-queues.sh | DONE | POSIX sh, semp_post() helper, DMQ first, idempotent via ALREADY_EXISTS |
-| local-dev/docker-compose.yml | DONE | Added hermes-solace-init one-shot service with depends_on: service_healthy |
-| README.md | DONE | SDKPerf section: 10 standard (1KB) messages + 5 large (250KB) messages |
-| local-dev/setup.sh | DONE | Full setup: prereqs → .env → certs → compose up → health poll → verify |
-| local-dev/setup.bat | DONE | Windows equivalent; includes Git Bash check for cert generation |
-| local-dev/verify.sh | DONE | 5 sections: containers, Solace queues, LocalStack, PostgreSQL, SDKPerf |
-| local-dev/verify.bat | DONE | Windows equivalent of verify.sh |
-
-## Key Interfaces Defined
-None — infrastructure provisioning, automation, and documentation only.
-
-## Design Decisions
-| Decision | Why | Alternatives Rejected |
-|----------|-----|----------------------|
-| Shell script over Claude skill for automation | Deterministic, CI-friendly, runs without Claude | Claude skill (slow, non-deterministic, requires active session) |
-| verify.sh/bat separate from setup.sh/bat | Testers can run verification without re-running full setup | Single monolithic script |
-| SDKPERF_HOME env var for optional SDKPerf check | Not all developers have SDKPerf installed | Hard-fail if absent |
-| Git Bash prerequisite in setup.bat | generate-certs.sh is a shell script, requires bash on Windows | PowerShell rewrite of cert generation |
-| goto bash_found inside else block (setup.bat) | Known Low finding — accepted; does not affect core functionality | Refactor to temp file pattern (declined) |
-| Specific grep patterns for queue names in verify.sh | Ambiguous grep would match DMQ line for main queue check | Generic loop (fixed from initial code review) |
-
-## Accepted Deviations
-| Item | Reason | User decision |
-|------|--------|---------------|
-| HTTP plaintext to Solace SEMP | Solace Standard Docker does not expose SEMP over HTTPS on port 8080 | Accepted 2026-03-22 |
-| admin:admin hardcoded in provision-queues.sh | Canonical Solace Standard Docker default; local dev only | Accepted 2026-03-22 |
-| verify.bat Low findings not fixed | temp file cleanup and variable init — Low severity, no functional impact | Declined 2026-03-22 |
-| setup.bat goto label finding not fixed | Low severity, works on Windows 10/11 in practice | Declined 2026-03-22 |
-
-## Local Stack Run Status (2026-03-22)
-Windows local stack run was attempted. Current status:
-- setup.bat fixed: goto-inside-parenthesised-block bug resolved (replaced with goto skip_bash_check at top level)
-- Prereq checks: Docker ✅, Compose ✅, AWS CLI ✅, bash ✅
-- .env created from .env.example ✅
-- Certificate generation: BLOCKED — bash on PATH is WSL relay, not Git Bash; WSL distro not configured
-
-## Exact Next Step
-1. Install Git for Windows on the user's machine: `winget install Git.Git`
-2. Open a new terminal after install (so Git Bash is on PATH)
-3. Run `local-dev\setup.bat` to complete: cert generation → docker compose up → health poll → verify
-4. Once local stack is confirmed healthy, begin US-E0-005: implement src/main/resources/application-local.yml
+## US-E0-005 Acceptance Criteria
+- [ ] src/main/resources/application-local.yml created with all local Docker Compose settings
+- [ ] Solace connection: tcp://localhost:55555 (plaintext) with admin/admin credentials
+- [ ] PostgreSQL: localhost:5432 db=hermes user=hermes password=hermes
+- [ ] LocalStack SNS/SQS: endpoint http://localhost:4566, region us-east-1, dummy credentials
+- [ ] Flyway migrations enabled and pointing to local PostgreSQL
+- [ ] Spring profile: local
+- [ ] No secrets in the file — only local dev defaults that match docker-compose.yml
 
 ## Context to Load on Resume
-Read these files (in order) before resuming — do not read anything else until these are loaded:
+Read these files (in order) before resuming:
 1. dev-journal/CURRENT.md (already reading this)
-2. local-dev/setup.bat — to understand current state of the script
-CLAUDE.md sections needed: Java/Spring Boot standards, Solace/JCSMP standards, Security standards (for US-E0-005)
+2. backlog.md — US-E0-005 acceptance criteria
+3. src/main/resources/application.yml — base config to understand what local overrides
+CLAUDE.md sections needed: Java/Spring Boot standards, Solace/JCSMP standards, Security standards
