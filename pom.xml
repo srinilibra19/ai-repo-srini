@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- =========================================================
+       Spring Boot parent — governs dependency versions via BOM.
+       Keep on 3.5.x (latest patch). 3.3/3.4 are past OSS EOL.
+       ========================================================= -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.3</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.middleware</groupId>
+  <artifactId>hermes</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>hermes</name>
+  <description>Production-grade Solace-to-AWS messaging bridge (Containers with Middleware)</description>
+
+  <!-- =========================================================
+       Version properties — only for dependencies NOT managed by
+       the Spring Boot BOM. Never override BOM-managed versions
+       (HikariCP, Flyway, JUnit, Mockito, Logback).
+       ========================================================= -->
+  <properties>
+    <java.version>17</java.version>
+
+    <!-- Solace — verify compatibility before any Spring Boot major upgrade -->
+    <solace-spring-boot.version>5.2.0</solace-spring-boot.version>
+
+    <!-- AWS SDK v2 BOM — managed independently of Spring Boot -->
+    <aws-sdk.version>2.26.0</aws-sdk.version>
+
+    <!-- Resilience4j 2.4.0 — adds Spring Boot 4 compatibility path -->
+    <resilience4j.version>2.4.0</resilience4j.version>
+
+    <!-- OpenTelemetry SDK — monthly cadence, keep on latest patch -->
+    <otel-sdk.version>1.60.0</otel-sdk.version>
+    <otel-instrumentation.version>2.26.0</otel-instrumentation.version>
+
+    <!-- Structured JSON logging -->
+    <logstash-logback.version>8.0</logstash-logback.version>
+
+    <!-- Testcontainers 2.x — verify 2.x migration guide if coming from 1.x -->
+    <testcontainers.version>2.0.4</testcontainers.version>
+  </properties>
+
+  <!-- =========================================================
+       Dependency management — import BOMs for libraries that
+       have their own version alignment guarantees.
+       ========================================================= -->
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- AWS SDK v2 BOM — aligns all software.amazon.awssdk modules -->
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${aws-sdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Resilience4j BOM -->
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-bom</artifactId>
+        <version>${resilience4j.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Testcontainers BOM -->
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${testcontainers.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- OpenTelemetry BOM — aligns all io.opentelemetry modules at one version.
+           Imported here so individual deps below need no explicit version.
+           Spring Boot 3.5 also imports an OTel BOM; this declaration takes
+           precedence and pins the version to CLAUDE.md-specified 1.60.x. -->
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-bom</artifactId>
+        <version>${otel-sdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+
+    <!-- =======================================================
+         Spring Boot starters
+         ======================================================= -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <!-- AOP — required for Resilience4j @CircuitBreaker, @Retry, @Bulkhead proxying.
+         Without aspectjweaver (bundled here), annotations compile but are never applied. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
+
+    <!-- Configuration metadata for IDE auto-complete on @ConfigurationProperties -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- =======================================================
+         Solace PubSub+ — JCSMP-based starter (5.2.0 bundles JCSMP 10.21+)
+         Verify compatibility before any Spring Boot major upgrade.
+         ======================================================= -->
+    <dependency>
+      <groupId>com.solace.spring.boot</groupId>
+      <artifactId>solace-spring-boot-starter</artifactId>
+      <version>${solace-spring-boot.version}</version>
+    </dependency>
+
+    <!-- =======================================================
+         AWS SDK v2 — individual service clients (versions from BOM)
+         sts required for IRSA credential chain
+         ======================================================= -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sns</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sqs</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>secretsmanager</artifactId>
+    </dependency>
+
+    <!-- STS required for IRSA Web Identity Token credential provider on ROSA -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sts</artifactId>
+    </dependency>
+
+    <!-- =======================================================
+         Resilience4j — circuit breakers, retry, bulkhead
+         2.4.0 adds Spring Boot 4 compatibility for future migration
+         ======================================================= -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-spring-boot3</artifactId>
+    </dependency>
+
+    <!-- Micrometer integration for Resilience4j metrics -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-micrometer</artifactId>
+    </dependency>
+
+    <!-- =======================================================
+         Database — Flyway + PostgreSQL driver + HikariCP
+         Flyway 11.x and HikariCP 6.x are BOM-managed by Spring Boot 3.5.
+         Never override these versions manually.
+         ======================================================= -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+      <!-- version managed by Spring Boot BOM (Flyway 11.x) -->
+    </dependency>
+
+    <!-- Flyway 11.x requires explicit PostgreSQL dialect module -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+      <!-- version managed by Spring Boot BOM -->
+    </dependency>
+
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- =======================================================
+         Observability
+         ======================================================= -->
+
+    <!-- Micrometer CloudWatch2 registry — publishes to CustomerMiddleware namespace -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-cloudwatch2</artifactId>
+      <!-- version managed by Spring Boot BOM -->
+    </dependency>
+
+    <!-- OpenTelemetry SDK — for custom X-Ray spans (Solace receive, RDS TX, SNS publish).
+         Versions managed by opentelemetry-bom imported above — do not add explicit versions. -->
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+    </dependency>
+
+    <!-- =======================================================
+         Structured JSON logging — Logback JSON encoder
+         Compatible with Logback 1.5.x (Spring Boot 3.5 BOM).
+         ======================================================= -->
+    <dependency>
+      <groupId>net.logstash.logback</groupId>
+      <artifactId>logstash-logback-encoder</artifactId>
+      <version>${logstash-logback.version}</version>
+    </dependency>
+
+    <!-- =======================================================
+         Lombok — compile-time annotation processing only
+         Excluded from fat JAR by spring-boot-maven-plugin config.
+         ======================================================= -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <!-- version managed by Spring Boot BOM -->
+      <optional>true</optional>
+    </dependency>
+
+    <!-- =======================================================
+         Test dependencies
+         JUnit 5.14.x and Mockito 5.22.x are BOM-managed (Spring Boot 3.5).
+         ======================================================= -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- H2 in-memory DB — context load tests only, not integration tests -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Testcontainers — integration tests use real PostgreSQL and Solace containers -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>localstack</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <!-- =========================================================
+       Build plugins
+       ========================================================= -->
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <!-- Exclude Lombok from the fat JAR — annotation processing only -->
+          <excludes>
+            <exclude>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+            </exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <!-- Enforce Java 17 source/target compatibility explicitly -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>17</source>
+          <target>17</target>
+          <parameters>true</parameters>
+          <!-- Enable annotation processing for Lombok and Spring config processor -->
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+            <path>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-configuration-processor</artifactId>
+              <version>${project.parent.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+
+      <!-- Surefire — unit tests (src/test/**/*Test.java, excludes IT) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/*IT.java</exclude>
+            <exclude>**/*IntegrationTest.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <!-- Failsafe — integration tests (run with mvn verify -P integration-tests) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <includes>
+            <include>**/*IT.java</include>
+            <include>**/*IntegrationTest.java</include>
+          </includes>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
+  <!-- =========================================================
+       Integration test profile — activated via mvn verify -P integration-tests
+       Requires Docker (Testcontainers pulls Solace, PostgreSQL, LocalStack images).
+       ========================================================= -->
+  <profiles>
+    <profile>
+      <id>integration-tests</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <systemPropertyVariables>
+                <spring.profiles.active>test</spring.profiles.active>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
+
+          <!-- OWASP Dependency-Check — scans transitive JARs for CVEs.
+               Fails the build on CVSS >= 7 (High/Critical).
+               Run with: mvn verify -P integration-tests
+               Suppressions file suppresses accepted false-positives. -->
+          <plugin>
+            <groupId>org.owasp</groupId>
+            <artifactId>dependency-check-maven</artifactId>
+            <version>10.0.4</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <!-- Fail on High or Critical CVEs (CVSS score >= 7) -->
+              <failBuildOnCVSS>7</failBuildOnCVSS>
+              <!-- Suppress accepted false-positives — document each suppression with a reason -->
+              <suppressionFiles>
+                <suppressionFile>owasp-suppressions.xml</suppressionFile>
+              </suppressionFiles>
+              <!-- Skip test-scoped dependencies — test tools are not in the runtime image -->
+              <skipTestScope>true</skipTestScope>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+</project>
