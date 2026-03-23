@@ -79,15 +79,24 @@ if !errorlevel! neq 0 (
 )
 
 REM Check Git Bash is available (needed for generate-certs.sh)
+REM Derive bash.exe from the Git installation directory (avoids picking up WSL bash)
 if !SKIP_CERTS! neq 0 goto skip_bash_check
-where bash >nul 2>&1
-if !errorlevel! neq 0 (
-    echo   [WARN] bash not found -- certificate generation will be skipped
-    echo          Install Git for Windows: https://git-scm.com/download/win
-    echo          Or run: winget install Git.Git
-    set SKIP_CERTS=1
+set GIT_BASH_EXE=
+for /f "delims=" %%g in ('where git 2^>nul') do if not defined GIT_BASH_EXE set GIT_BASH_EXE=%%g
+if defined GIT_BASH_EXE (
+    REM git.exe is in <GitRoot>\cmd\git.exe  -- bash.exe is in <GitRoot>\bin\bash.exe
+    for %%d in ("!GIT_BASH_EXE!\..\..") do set GIT_ROOT=%%~fd
+    if exist "!GIT_ROOT!\bin\bash.exe" (
+        set GIT_BASH_EXE=!GIT_ROOT!\bin\bash.exe
+        echo   [PASS] Git Bash -- !GIT_BASH_EXE!
+    ) else (
+        echo   [WARN] git found but bin\bash.exe missing -- certificate generation will be skipped
+        set SKIP_CERTS=1
+    )
 ) else (
-    echo   [PASS] bash -- available
+    echo   [WARN] Git not found -- certificate generation will be skipped
+    echo          Install Git for Windows: https://git-scm.com/download/win
+    set SKIP_CERTS=1
 )
 :skip_bash_check
 
@@ -134,7 +143,7 @@ if !SKIP_CERTS! equ 1 (
             exit /b 1
         )
         echo   [INFO] Generating mTLS certificates via Git Bash...
-        bash "%SCRIPT_DIR%certs\generate-certs.sh"
+        "!GIT_BASH_EXE!" "%SCRIPT_DIR%certs\generate-certs.sh"
         if !errorlevel! neq 0 (
             echo   [FAIL] Certificate generation failed
             exit /b 1

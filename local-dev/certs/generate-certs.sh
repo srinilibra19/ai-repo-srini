@@ -25,9 +25,24 @@
 
 set -euo pipefail
 
+# Disable Git Bash / MSYS2 automatic path conversion for OpenSSL -subj strings
+# (e.g. /CN=... would otherwise be converted to D:/Installs/Git/CN=...)
+# No-op on Linux and macOS.
+export MSYS_NO_PATHCONV=1
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/../.env"
 OUT="$SCRIPT_DIR"
+
+# On Git Bash / MSYS2, MSYS_NO_PATHCONV=1 disables auto path conversion, so native
+# Windows binaries (openssl, keytool) can't resolve /c/Users/... paths.
+# Convert $OUT to a Windows mixed path (C:/Users/...) for use in binary arguments.
+# cygpath is a no-op context on Linux/macOS where it won't be found.
+if command -v cygpath &>/dev/null; then
+  OUT_W="$(cygpath -m "$OUT")"
+else
+  OUT_W="$OUT"
+fi
 
 CERT_VALIDITY_DAYS=825   # <= 825 required by modern TLS clients (Apple, Chrome)
 CA_VALIDITY_DAYS=3650    # 10 years for the local-only CA
@@ -76,11 +91,11 @@ rm -f \
 # 1. Root CA (local only — 4096-bit RSA, 10-year validity)
 # ---------------------------------------------------------------------------
 echo "==> [1/5] Generating root CA"
-openssl genrsa -out "$OUT/ca.key" 4096 2>/dev/null
+openssl genrsa -out "$OUT_W/ca.key" 2048 2>/dev/null
 openssl req -new -x509 \
   -days "$CA_VALIDITY_DAYS" \
-  -key  "$OUT/ca.key" \
-  -out  "$OUT/ca.crt" \
+  -key  "$OUT_W/ca.key" \
+  -out  "$OUT_W/ca.crt" \
   -subj "/CN=Hermes Local CA/O=Hermes Local Dev/C=US"
 
 # ---------------------------------------------------------------------------
@@ -88,11 +103,11 @@ openssl req -new -x509 \
 #    SAN covers 'solace' (Docker DNS) and 'localhost' (direct connections)
 # ---------------------------------------------------------------------------
 echo "==> [2/5] Generating server certificate (Solace)"
-openssl genrsa -out "$OUT/server.key" 2048 2>/dev/null
+openssl genrsa -out "$OUT_W/server.key" 2048 2>/dev/null
 
 openssl req -new \
-  -key  "$OUT/server.key" \
-  -out  "$OUT/server.csr" \
+  -key  "$OUT_W/server.key" \
+  -out  "$OUT_W/server.csr" \
   -subj "/CN=solace/O=Hermes Local Dev/C=US"
 
 # Write SANs to a temporary config (required by openssl x509 -extfile)
@@ -107,12 +122,12 @@ EOF
 
 openssl x509 -req \
   -days  "$CERT_VALIDITY_DAYS" \
-  -in    "$OUT/server.csr" \
-  -CA    "$OUT/ca.crt" \
-  -CAkey "$OUT/ca.key" \
+  -in    "$OUT_W/server.csr" \
+  -CA    "$OUT_W/ca.crt" \
+  -CAkey "$OUT_W/ca.key" \
   -CAcreateserial \
-  -out   "$OUT/server.crt" \
-  -extfile "$OUT/server-ext.cnf" \
+  -out   "$OUT_W/server.crt" \
+  -extfile "$OUT_W/server-ext.cnf" \
   -extensions v3_req 2>/dev/null
 
 # Combined PEM: certificate then private key — format expected by Solace Standard
@@ -122,20 +137,20 @@ cat "$OUT/server.crt" "$OUT/server.key" > "$OUT/server-combined.pem"
 # 3. Client certificate (used by JCSMP / Spring Boot application)
 # ---------------------------------------------------------------------------
 echo "==> [3/5] Generating client certificate (JCSMP)"
-openssl genrsa -out "$OUT/client.key" 2048 2>/dev/null
+openssl genrsa -out "$OUT_W/client.key" 2048 2>/dev/null
 
 openssl req -new \
-  -key  "$OUT/client.key" \
-  -out  "$OUT/client.csr" \
+  -key  "$OUT_W/client.key" \
+  -out  "$OUT_W/client.csr" \
   -subj "/CN=hermes-client/O=Hermes Local Dev/C=US"
 
 openssl x509 -req \
   -days  "$CERT_VALIDITY_DAYS" \
-  -in    "$OUT/client.csr" \
-  -CA    "$OUT/ca.crt" \
-  -CAkey "$OUT/ca.key" \
+  -in    "$OUT_W/client.csr" \
+  -CA    "$OUT_W/ca.crt" \
+  -CAkey "$OUT_W/ca.key" \
   -CAcreateserial \
-  -out   "$OUT/client.crt" 2>/dev/null
+  -out   "$OUT_W/client.crt" 2>/dev/null
 
 # ---------------------------------------------------------------------------
 # 4. PKCS12 client keystore — client cert + key, CA cert as chain entry
@@ -143,10 +158,10 @@ openssl x509 -req \
 # ---------------------------------------------------------------------------
 echo "==> [4/5] Creating PKCS12 client keystore: client-keystore.p12"
 openssl pkcs12 -export \
-  -in       "$OUT/client.crt" \
-  -inkey    "$OUT/client.key" \
-  -certfile "$OUT/ca.crt" \
-  -out      "$OUT/client-keystore.p12" \
+  -in       "$OUT_W/client.crt" \
+  -inkey    "$OUT_W/client.key" \
+  -certfile "$OUT_W/ca.crt" \
+  -out      "$OUT_W/client-keystore.p12" \
   -passout  "pass:${KEYSTORE_PASSWORD}" \
   -name     hermes-client
 
@@ -158,8 +173,8 @@ keytool -importcert \
   -trustcacerts \
   -noprompt \
   -alias    hermes-local-ca \
-  -file     "$OUT/ca.crt" \
-  -keystore "$OUT/truststore.jks" \
+  -file     "$OUT_W/ca.crt" \
+  -keystore "$OUT_W/truststore.jks" \
   -storepass "${TRUSTSTORE_PASSWORD}" \
   -storetype JKS
 

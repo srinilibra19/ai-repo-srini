@@ -93,7 +93,7 @@ services:
   # Requires: local-dev/solace-init/provision-queues.sh (US-E0-004)
   # ---------------------------------------------------------------------------
   hermes-solace-init:
-    image: curlimages/curl:8
+    image: curlimages/curl:8.12.1
     container_name: hermes-solace-init
     depends_on:
       solace:
