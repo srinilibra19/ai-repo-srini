@@ -1,0 +1,147 @@
+# =============================================================================
+# application.yml — Hermes base configuration
+#
+# Environment-agnostic defaults only. No secrets, credentials, hostnames,
+# ARNs, or environment-specific values belong here.
+# Profile overlays supply those:
+#   application-local.yml  → Docker Compose local dev
+#   application-aws.yml    → ROSA / AWS production
+#   application-test.yml   → Unit / context-load tests (H2, no external services)
+# =============================================================================
+
+spring:
+  application:
+    name: hermes
+
+  # ---------------------------------------------------------------------------
+  # JPA — Flyway owns the schema; Hibernate must never generate or alter DDL.
+  # ---------------------------------------------------------------------------
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+  # ---------------------------------------------------------------------------
+  # Flyway — enabled by default. application-test.yml disables it (H2 uses
+  # Hibernate create-drop instead). Validate-on-migrate catches schema drift.
+  # ---------------------------------------------------------------------------
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    baseline-on-migrate: false
+
+  # ---------------------------------------------------------------------------
+  # Graceful shutdown — Spring waits up to 55 s for in-flight work to complete
+  # before forcing shutdown. Leaves 5 s headroom within the Helm
+  # terminationGracePeriodSeconds: 60 to allow the JVM and OS process to exit.
+  # ---------------------------------------------------------------------------
+  lifecycle:
+    timeout-per-shutdown-phase: 55s
+
+  # ---------------------------------------------------------------------------
+  # HikariCP — connection pool tuning only. Connection URL, username, and
+  # password are provided by the active profile overlay.
+  # RDS Proxy sits in front of RDS; each pod needs only a small pool because
+  # the proxy multiplexes connections to the DB.
+  # ---------------------------------------------------------------------------
+  datasource:
+    hikari:
+      connection-timeout: 20000      # 20 s — fail fast; do not queue requests
+      idle-timeout: 300000           # 5 min — return idle connections to RDS Proxy
+      max-lifetime: 900000           # 15 min — below RDS Proxy idle timeout (30 min default)
+      maximum-pool-size: 10          # Per pod; adjust via application-aws.yml if needed
+      minimum-idle: 2
+      pool-name: HermesHikariPool
+      connection-test-query: SELECT 1
+
+# -----------------------------------------------------------------------------
+# HTTP server
+# -----------------------------------------------------------------------------
+server:
+  port: 8080
+  shutdown: graceful
+
+# =============================================================================
+# Management / Actuator
+# Served on port 8081 — isolated from the main application port. This ensures
+# Solace VPN CIDR, SNS, and any internet-facing ingress cannot reach management
+# endpoints. Only safe, read-only endpoints are exposed.
+# Never add: env, beans, heapdump, threaddump, mappings, configprops.
+# =============================================================================
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true    # Exposes /actuator/health/liveness + /readiness for K8s probes
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      # destination and environment dimensions are added per-pod via MeterRegistryCustomizer
+
+# =============================================================================
+# Logging
+# Structured JSON output via Logstash Logback encoder (logback-spring.xml).
+# Root level WARN; Hermes packages at INFO — no DEBUG in production.
+# Local and test profile overlays raise Hermes packages to DEBUG.
+# Log group naming (hermes/{destination}/{environment}) is set in
+# logback-spring.xml using Spring profile and application properties.
+# =============================================================================
+logging:
+  level:
+    root: WARN
+    com.middleware.hermes: INFO
+
+# =============================================================================
+# Solace — universal settings that must apply in every environment.
+# Connection-specific properties (host, auth, keystores) are in profile overlays.
+# These settings are non-negotiable per CLAUDE.md:
+#   reconnect-retries: -1    → infinite reconnect for WAN resilience
+#   sub-ack-window-size: 32  → prefetch window (validated by load tests)
+#   ssl-validate-certificate: true → TLS certificate validation always on
+# =============================================================================
+solace:
+  java:
+    reconnect-retries: -1
+    sub-ack-window-size: 32
+    ssl-validate-certificate: true
+
+# =============================================================================
+# Hermes application properties
+# All values marked ${ENV_VAR} are required and must be supplied by the active
+# profile overlay or environment variables injected via ESO → K8s Secret.
+# A missing value causes an explicit startup failure rather than silent
+# misconfiguration.
+# The claim-check-threshold-bytes default (200 KB) is safe to ship but can be
+# overridden per environment.
+# =============================================================================
+hermes:
+  aws:
+    region: ${HERMES_AWS_REGION}
+    # endpoint-override is intentionally absent here.
+    # It is set only in application-local.yml (LocalStack) and
+    # application-test.yml (LocalStack stubs). The aws profile uses real
+    # AWS endpoints via VPC Interface Endpoints — no override needed.
+  sns:
+    flightschedules-topic-arn: ${HERMES_SNS_FLIGHTSCHEDULES_TOPIC_ARN}
+  sqs:
+    flightschedules-queue-url: ${HERMES_SQS_FLIGHTSCHEDULES_QUEUE_URL}
+    flightschedules-dlq-url: ${HERMES_SQS_FLIGHTSCHEDULES_DLQ_URL}
+  s3:
+    claim-check-bucket: ${HERMES_S3_CLAIM_CHECK_BUCKET}
+  processing:
+    # Messages exceeding this threshold are offloaded to S3 (claim-check pattern).
+    # 200 KB = 204800 bytes. Do not raise above 256 KB (SNS hard limit).
+    claim-check-threshold-bytes: 204800

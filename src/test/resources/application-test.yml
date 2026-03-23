@@ -1,0 +1,57 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  # H2 in-memory database — context load tests only.
+  # Integration tests use Testcontainers (real PostgreSQL) — not this config.
+  datasource:
+    url: jdbc:h2:mem:hermes-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  # Flyway disabled for unit/context-load tests — H2 DDL is created by Hibernate.
+  # Integration tests re-enable Flyway against the Testcontainers PostgreSQL instance.
+  flyway:
+    enabled: false
+
+  # Exclude Solace auto-configuration — no broker connection attempted in unit tests.
+  autoconfigure:
+    exclude:
+      - com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration
+
+# Disable Actuator endpoints for tests — not needed, avoids port conflicts.
+management:
+  endpoints:
+    enabled-by-default: false
+
+# Suppress verbose Spring Boot startup logging in test output.
+logging:
+  level:
+    root: WARN
+    com.middleware.hermes: INFO
+    org.springframework.boot.test: WARN
+
+# Hermes application properties — stubs required to satisfy @ConfigurationProperties binding.
+# Actual values are irrelevant for context load tests.
+hermes:
+  aws:
+    region: us-east-1
+    endpoint-override: http://localhost:4566
+    credentials:
+      access-key-id: test
+      secret-access-key: test
+  sns:
+    flightschedules-topic-arn: arn:aws:sns:us-east-1:000000000000:hermes-flightschedules.fifo
+  sqs:
+    flightschedules-queue-url: http://localhost:4566/000000000000/hermes-flightschedules-consumer-a.fifo
+    flightschedules-dlq-url: http://localhost:4566/000000000000/hermes-flightschedules-dlq.fifo
+  s3:
+    claim-check-bucket: hermes-claim-check-test

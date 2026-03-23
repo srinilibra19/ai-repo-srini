@@ -1,5 +1,5 @@
 # Development Progress Index
-Last updated: 2026-03-22
+Last updated: 2026-03-23
 
 | Story ID    | Title                                                     | Status  | Sprint | Journal |
 |-------------|-----------------------------------------------------------|---------|--------|---------|
@@ -27,7 +27,7 @@ Last updated: 2026-03-22
 | US-E4-001   | SNS FIFO topic for flightschedules                        | PENDING | 3      | —       |
 | US-E4-002   | SQS FIFO queues and DLQ for flightschedules               | PENDING | 3      | —       |
 | US-E4-003   | SNS/SQS message group strategy configuration              | PENDING | 3      | —       |
-| US-E5-001   | Spring Boot project scaffold                              | PENDING | 3      | —       |
+| US-E5-001   | Spring Boot project scaffold                              | COMPLETE | 3     | dev-journal/E5-001.md |
 | US-E5-002   | JCSMP FlowReceiver with mTLS configuration                | PENDING | 3–4    | —       |
 | US-E5-003   | Solace SessionEventHandler and reconnection lifecycle     | PENDING | 4      | —       |
 | US-E5-004   | Structured JSON logging baseline                          | PENDING | 4      | —       |
