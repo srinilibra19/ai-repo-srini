@@ -42,12 +42,12 @@ services:
       # Docker creates this directory if absent — Solace will start but TLS won't be active
       # until generate-certs.sh has been run and the container restarted.
       - ./certs:/etc/solace/certs:ro
-    shm_size: 256m
+    shm_size: 1g
     ulimits:
       core: 0
       nofile:
         soft: 2448
-        hard: 38048
+        hard: 1048576
     healthcheck:
       test: ["CMD-SHELL", "curl -sf -u admin:admin http://localhost:8080/SEMP/v2/config/about/api || exit 1"]
       interval: 30s

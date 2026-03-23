@@ -31,11 +31,19 @@ set -euo pipefail
 ENDPOINT="http://localhost:4566"
 REGION="us-east-1"
 
+# Dummy credentials required by AWS CLI — LocalStack does not validate them
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_DEFAULT_REGION=us-east-1
+
+# Disable pager output — AWS_PAGER works on both CLI v1 and v2
+# (--no-cli-pager is v2-only and fails inside the LocalStack container which ships v1)
+export AWS_PAGER=""
+
 # Wrapper to avoid repeating endpoint/region/formatting flags on every call
 aws_cmd() {
   aws --endpoint-url "$ENDPOINT" \
       --region "$REGION" \
-      --no-cli-pager \
       --output text \
       "$@"
 }

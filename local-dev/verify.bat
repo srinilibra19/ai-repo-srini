@@ -182,7 +182,7 @@ if !FAIL_COUNT! equ 0 (
     exit /b 0
 ) else (
     echo.
-    echo   !FAIL_COUNT! check(s) failed -- review output above.
+    echo   !FAIL_COUNT! check^(s^) failed -- review output above.
     echo.
     exit /b 1
 )
