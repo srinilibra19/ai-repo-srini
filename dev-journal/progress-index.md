@@ -7,7 +7,7 @@ Last updated: 2026-03-22
 | US-E0-002   | Self-signed mTLS certificate generation for local Solace  | COMPLETE | 1      | dev-journal/E0-002.md |
 | US-E0-003   | LocalStack initialisation for SNS FIFO and SQS FIFO       | COMPLETE | 1      | dev-journal/E0-003.md |
 | US-E0-004   | Solace local queue and subscription provisioning          | COMPLETE | 1      | dev-journal/E0-004.md |
-| US-E0-005   | Spring Boot local application profile                     | PENDING | 1      | —       |
+| US-E0-005   | Spring Boot local application profile                     | COMPLETE | 1      | dev-journal/E0-005.md |
 | US-E1-001   | Terraform remote state backend                            | PENDING | 1      | —       |
 | US-E1-002   | VPC and networking module                                 | PENDING | 1      | —       |
 | US-E1-003   | VPC Interface Endpoints                                   | PENDING | 2      | —       |

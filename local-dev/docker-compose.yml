@@ -18,7 +18,7 @@ services:
 
   # ---------------------------------------------------------------------------
   # Solace PubSub+ Standard
-  # Admin UI : http://localhost:8080  (admin / admin)
+  # Admin UI : http://localhost:8080  → redirects to https://localhost:1943 when TLS cert is present
   # SMF      : localhost:55555 (plaintext) | localhost:55443 (TLS)
   # ---------------------------------------------------------------------------
   solace:
@@ -35,7 +35,8 @@ services:
     ports:
       - "55555:55555"   # SMF plaintext
       - "55443:55443"   # SMF over TLS (mTLS after certs/generate-certs.sh is run)
-      - "8080:8080"     # SEMP v2 API / admin UI
+      - "8080:8080"     # SEMP v2 API / admin UI (HTTP — redirects to 1943 when TLS cert is present)
+      - "1943:1943"     # SEMP v2 API / admin UI (HTTPS — active when server-combined.pem is mounted)
     volumes:
       - solace-data:/var/lib/solace
       # Bind-mount generated certs into the container (read-only).
