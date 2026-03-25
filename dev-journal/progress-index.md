@@ -1,5 +1,5 @@
 # Development Progress Index
-Last updated: 2026-03-23
+Last updated: 2026-03-25
 
 | Story ID    | Title                                                     | Status  | Sprint | Journal |
 |-------------|-----------------------------------------------------------|---------|--------|---------|
@@ -21,7 +21,7 @@ Last updated: 2026-03-23
 | US-E2-004   | OpenShift namespace security (SCCs, RBAC, NetworkPolicies)| PENDING | 3      | —       |
 | US-E2-005   | RDS Secrets Manager and IAM database auth                 | PENDING | 3      | —       |
 | US-E3-001   | RDS PostgreSQL Multi-AZ Terraform module                  | PENDING | 2      | —       |
-| US-E3-002   | Database schema migration — audit_messages table          | PENDING | 3      | —       |
+| US-E3-002   | Database schema migration — audit_messages table          | COMPLETE | 3     | dev-journal/E3-002.md |
 | US-E3-003   | Database schema migration — outbox_messages + trigger     | PENDING | 3      | —       |
 | US-E3-004   | HikariCP connection pool configuration                    | PENDING | 3      | —       |
 | US-E4-001   | SNS FIFO topic for flightschedules                        | PENDING | 3      | —       |
