@@ -131,7 +131,10 @@ logging:
 solace:
   java:
     reconnect-retries: -1
-    sub-ack-window-size: 32
+    reconnect-retry-wait-millis: 3000  # 3 s between reconnect attempts (WAN tolerance)
+    sub-ack-window-size: 32            # Prefetch window — validated by load tests (Sprint 9)
+    socket-rcvbuf-size: 131072         # 128 KB OS receive buffer
+    compression-level: 6               # ZLIB level 6 — balanced CPU vs. throughput
     ssl-validate-certificate: true
 
 # =============================================================================
