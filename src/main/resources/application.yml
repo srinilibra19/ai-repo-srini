@@ -44,20 +44,36 @@ spring:
     timeout-per-shutdown-phase: 55s
 
   # ---------------------------------------------------------------------------
-  # HikariCP — connection pool tuning only. Connection URL, username, and
-  # password are provided by the active profile overlay.
-  # RDS Proxy sits in front of RDS; each pod needs only a small pool because
-  # the proxy multiplexes connections to the DB.
+  # HikariCP — connection pool tuning. Connection URL, username, and password
+  # are provided by the active profile overlay (application-local.yml /
+  # application-aws.yml). RDS Proxy sits in front of RDS; the proxy
+  # multiplexes many pod connections onto a smaller set of RDS connections.
+  #
+  # Sizing rationale (REQ-PERF-011):
+  #   16 processing threads + 4 headroom = 20 max connections per pod.
+  #   At P95 load (1,000 msg/s across N pods), each pod holds at most
+  #   16 concurrent DB transactions — 20 provides safe headroom.
+  #   HikariCP docs: pool-size = (core_count * 2) + effective_spindle_count
+  #   is a guideline; 20 is validated by load tests (Sprint 9).
   # ---------------------------------------------------------------------------
   datasource:
     hikari:
-      connection-timeout: 20000      # 20 s — fail fast; do not queue requests
-      idle-timeout: 300000           # 5 min — return idle connections to RDS Proxy
-      max-lifetime: 900000           # 15 min — below RDS Proxy idle timeout (30 min default)
-      maximum-pool-size: 10          # Per pod; adjust via application-aws.yml if needed
-      minimum-idle: 2
+      maximum-pool-size: 20          # 16 processing threads + 4 headroom (REQ-PERF-011)
+      minimum-idle: 5                # Warm connections ready before first message arrives
+      connection-timeout: 30000      # 30 s — time to wait for a connection from the pool
+      idle-timeout: 600000           # 10 min — return idle connections to RDS Proxy
+      max-lifetime: 1800000          # 30 min — recycle before RDS Proxy idle timeout (1 h default)
+      keepalive-time: 300000         # 5 min — keep-alive ping prevents RDS Proxy from closing idle conns
       pool-name: HermesHikariPool
       connection-test-query: SELECT 1
+
+  # ---------------------------------------------------------------------------
+  # HikariCP pool metrics — exposed via Actuator /actuator/metrics and scraped
+  # by ADOT Collector → CloudWatch. Metric names follow the pattern:
+  #   hikaricp.connections.active, hikaricp.connections.idle,
+  #   hikaricp.connections.pending, hikaricp.connections.timeout
+  # ---------------------------------------------------------------------------
+  datasource.hikari.register-mbeans: false   # JMX not used; Micrometer integration is sufficient
 
 # -----------------------------------------------------------------------------
 # HTTP server

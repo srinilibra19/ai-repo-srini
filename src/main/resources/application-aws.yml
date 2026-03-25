@@ -1,0 +1,108 @@
+# =============================================================================
+# application-aws.yml — ROSA / AWS production profile
+#
+# Activated by: spring.profiles.active=aws (set via K8s env var in Helm values)
+# All secrets are injected as environment variables by External Secrets Operator
+# (ESO) syncing from AWS Secrets Manager → K8s Secret → pod env vars.
+# No secret values appear in this file. No defaults with plaintext credentials.
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: aws
+
+  # ---------------------------------------------------------------------------
+  # DataSource — RDS Proxy endpoint (not RDS direct endpoint).
+  # RDS Proxy provides:
+  #   - Connection multiplexing (critical for HPA/KEDA scale-out)
+  #   - IAM authentication support
+  #   - Transparent failover on Multi-AZ switchover
+  #
+  # The JDBC URL references the RDS Proxy endpoint injected by ESO.
+  # SSL is enforced at the RDS parameter group level (rds.force_ssl=1) and
+  # at the JDBC level via sslmode=require.
+  #
+  # Required K8s Secret env vars (synced from Secrets Manager via ESO):
+  #   DB_HOST     — RDS Proxy endpoint (e.g. hermes-proxy.proxy-xxx.rds.amazonaws.com)
+  #   DB_PORT     — typically 5432
+  #   DB_NAME     — hermes
+  #   DB_USERNAME — hermes_app
+  #   DB_PASSWORD — rotated by Secrets Manager every 90 days
+  # ---------------------------------------------------------------------------
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require&ApplicationName=hermes
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      # Override pool name to include environment for CloudWatch metric dimensions
+      pool-name: HermesHikariPool-aws
+
+  # ---------------------------------------------------------------------------
+  # JPA — production uses validate; schema is owned by Flyway migrations
+  # ---------------------------------------------------------------------------
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  # ---------------------------------------------------------------------------
+  # Flyway — enabled in AWS profile (against real RDS PostgreSQL)
+  # ---------------------------------------------------------------------------
+  flyway:
+    enabled: true
+
+# =============================================================================
+# Logging — production settings
+# Root at WARN; Hermes packages at INFO. No DEBUG in production.
+# Structured JSON output is configured in logback-spring.xml.
+# Log group: hermes/{destination}/{environment} — set via logback appender config.
+# =============================================================================
+logging:
+  level:
+    root: WARN
+    com.middleware.hermes: INFO
+    com.solace: WARN
+    org.hibernate.SQL: WARN
+
+# =============================================================================
+# Solace — production connection properties
+# All sensitive values injected as env vars from ESO → K8s Secret.
+# Required env vars:
+#   SOLACE_HOST           — smfs://broker.example.com:55443
+#   SOLACE_VPN            — customer-vpn
+#   SOLACE_USERNAME       — hermes-consumer
+#   SOLACE_PASSWORD       — from Secrets Manager
+#   SOLACE_TRUSTSTORE_URL — file:/mnt/certs/truststore.jks
+#   SOLACE_TRUSTSTORE_PW  — from Secrets Manager
+#   SOLACE_KEYSTORE_URL   — file:/mnt/certs/client-keystore.p12
+#   SOLACE_KEYSTORE_PW    — from Secrets Manager
+#   SOLACE_CLIENT_NAME    — aws-hermes-flightschedules-${POD_UID}
+# =============================================================================
+solace:
+  java:
+    host: ${SOLACE_HOST}
+    msg-vpn: ${SOLACE_VPN}
+    client-username: ${SOLACE_USERNAME}
+    client-password: ${SOLACE_PASSWORD}
+    ssl-trust-store: ${SOLACE_TRUSTSTORE_URL}
+    ssl-trust-store-password: ${SOLACE_TRUSTSTORE_PW}
+    ssl-key-store: ${SOLACE_KEYSTORE_URL}
+    ssl-key-store-password: ${SOLACE_KEYSTORE_PW}
+    client-name: ${SOLACE_CLIENT_NAME}
+    # ssl-validate-certificate and reconnect-retries are set in base application.yml
+
+# =============================================================================
+# Hermes — AWS-specific overrides
+# SNS ARN, SQS URLs, and S3 bucket come from env vars injected by ESO.
+# No endpoint-override here — real AWS endpoints via VPC Interface Endpoints.
+# =============================================================================
+hermes:
+  aws:
+    region: ${HERMES_AWS_REGION}
+  sns:
+    flightschedules-topic-arn: ${HERMES_SNS_FLIGHTSCHEDULES_TOPIC_ARN}
+  sqs:
+    flightschedules-queue-url: ${HERMES_SQS_FLIGHTSCHEDULES_QUEUE_URL}
+    flightschedules-dlq-url: ${HERMES_SQS_FLIGHTSCHEDULES_DLQ_URL}
+  s3:
+    claim-check-bucket: ${HERMES_S3_CLAIM_CHECK_BUCKET}
