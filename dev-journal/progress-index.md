@@ -23,7 +23,7 @@ Last updated: 2026-03-25
 | US-E3-001   | RDS PostgreSQL Multi-AZ Terraform module                  | PENDING | 2      | —       |
 | US-E3-002   | Database schema migration — audit_messages table          | COMPLETE | 3     | dev-journal/E3-002.md |
 | US-E3-003   | Database schema migration — outbox_messages + trigger     | COMPLETE | 3     | dev-journal/E3-003.md |
-| US-E3-004   | HikariCP connection pool configuration                    | PENDING | 3      | —       |
+| US-E3-004   | HikariCP connection pool configuration                    | COMPLETE | 3     | dev-journal/E3-004.md |
 | US-E4-001   | SNS FIFO topic for flightschedules                        | PENDING | 3      | —       |
 | US-E4-002   | SQS FIFO queues and DLQ for flightschedules               | PENDING | 3      | —       |
 | US-E4-003   | SNS/SQS message group strategy configuration              | PENDING | 3      | —       |
