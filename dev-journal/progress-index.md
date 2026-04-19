@@ -8,7 +8,7 @@ Last updated: 2026-03-25
 | US-E0-003   | LocalStack initialisation for SNS FIFO and SQS FIFO       | COMPLETE | 1      | dev-journal/E0-003.md |
 | US-E0-004   | Solace local queue and subscription provisioning          | COMPLETE | 1      | dev-journal/E0-004.md |
 | US-E0-005   | Spring Boot local application profile                     | COMPLETE | 1      | dev-journal/E0-005.md |
-| US-E1-001   | Terraform remote state backend                            | PENDING | 1      | —       |
+| US-E1-001   | Terraform remote state backend                            | COMPLETE | 1     | dev-journal/E1-001.md |
 | US-E1-002   | VPC and networking module                                 | PENDING | 1      | —       |
 | US-E1-003   | VPC Interface Endpoints                                   | PENDING | 2      | —       |
 | US-E1-004   | KMS Customer Managed Keys                                 | PENDING | 2      | —       |
@@ -28,7 +28,7 @@ Last updated: 2026-03-25
 | US-E4-002   | SQS FIFO queues and DLQ for flightschedules               | PENDING | 3      | —       |
 | US-E4-003   | SNS/SQS message group strategy configuration              | PENDING | 3      | —       |
 | US-E5-001   | Spring Boot project scaffold                              | COMPLETE | 3     | dev-journal/E5-001.md |
-| US-E5-002   | JCSMP FlowReceiver with mTLS configuration                | PENDING | 3–4    | —       |
+| US-E5-002   | JCSMP FlowReceiver with mTLS configuration                | COMPLETE | 3–4   | dev-journal/E5-002.md |
 | US-E5-003   | Solace SessionEventHandler and reconnection lifecycle     | PENDING | 4      | —       |
 | US-E5-004   | Structured JSON logging baseline                          | PENDING | 4      | —       |
 | US-E6-001   | FlightSchedule canonical data model and deserialisation   | PENDING | 4      | —       |
