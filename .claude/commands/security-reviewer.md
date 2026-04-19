@@ -240,7 +240,7 @@ For each FAIL, produce a finding in this exact format:
 
 For each PASS, produce a single line:
 ```
-✅ [SECTION] — [RULE NAME]
+✅ [SECTION] — [RULE NAME] 
 ```
 
 For each N/A, produce a single line:

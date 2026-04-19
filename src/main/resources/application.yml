@@ -147,6 +147,11 @@ solace:
 # overridden per environment.
 # =============================================================================
 hermes:
+  solace:
+    destination: flightschedules          # Queue suffix — drives queue name and MDC destination tag
+    queue-name: hermes.flightschedules    # Full durable queue name on the Solace broker
+    processing-thread-pool-size: 16       # Solace bulkhead pool — matches HikariCP max-pool-size
+    stop-timeout-millis: 45000            # Executor drain budget on SIGTERM (fits within 55 s graceful window)
   aws:
     region: ${HERMES_AWS_REGION}
     # endpoint-override is intentionally absent here.
